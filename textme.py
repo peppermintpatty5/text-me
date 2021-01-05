@@ -4,28 +4,23 @@ import argparse
 import base64
 import json
 import sys
-from enum import Enum
-from xml.etree import ElementTree
-from xml.etree.ElementTree import Element
+from xml.etree import ElementTree as ET
+from xml.etree.ElementTree import Element, ElementTree
 
 
-def from_android(fp) -> list:
+def from_android(root: Element) -> list:
     """
-    Comment
+    Extract a list of messages from XML in the Android SMS/MMS backup format.
     """
-    # message type constants
+
     RECEIVED = "1"
     SENT = "2"
-    # address type constants
     TO = "151"
     FROM = "137"
-    # other constants
     UTF_8 = "106"
 
     messages = []
-
-    elem: Element = None
-    for elem in ElementTree.parse(fp).getroot():
+    for elem in root.iterfind("*"):
         message = {
             "timestamp": int(elem.get("date")) // 1000,
             "timestamp_ns": int(elem.get("date")) % 1000 * (10 ** 6),
@@ -48,7 +43,8 @@ def from_android(fp) -> list:
             for addr in elem.iterfind("addrs/addr"):
                 address = addr.get("address")
                 if addr.get("type") == FROM:
-                    message["sender"] = address
+                    if elem.get("msg_box") == RECEIVED:
+                        message["sender"] = address
                 elif addr.get("type") == TO:
                     message["recipients"].append(address)
                 else:
@@ -73,14 +69,10 @@ def from_android(fp) -> list:
     return messages
 
 
-def from_json(fp) -> list:
-    return json.load(fp)
-
-
-def from_win10(fp) -> list:
+def from_win10(root: Element) -> list:
     """
-    Extract a list of messages from `fp` which is an XML file in the Windows 10
-    Mobile SMS/MMS backup format.
+    Extract a list of messages from XML in the Windows 10 Mobile SMS/MMS backup
+    format.
     """
 
     def get_attachments(msg: Element) -> list:
@@ -102,35 +94,42 @@ def from_win10(fp) -> list:
 
         return attachments
 
-    messages = []
-    for msg in ElementTree.parse(fp).getroot().iterfind("Message"):
-        message = {}
-        message["timestamp"] = (
-            int(msg.find("LocalTimestamp").text) // (10 ** 7) - 11644473600
-        )
-        message["timestamp_ns"] = int(msg.find("LocalTimestamp").text) % (10 ** 7) * 100
-        message["sender"] = msg.find("Sender").text
-        message["recipients"] = [x.text for x in msg.iterfind("Recepients/string")]
-        message["body"] = msg.find("Body").text
-        message["is_read"] = msg.find("IsRead").text == "true"
-        message["attachments"] = get_attachments(msg)
-        messages.append(message)
+    return [
+        {
+            "timestamp": (
+                int(msg.find("LocalTimestamp").text) // (10 ** 7) - 11644473600
+            ),
+            "timestamp_ns": int(msg.find("LocalTimestamp").text) % (10 ** 7) * 100,
+            "sender": msg.find("Sender").text,
+            "recipients": [x.text for x in msg.iterfind("Recepients/string")],
+            "body": msg.find("Body").text,
+            "is_read": msg.find("IsRead").text == "true",
+            "attachments": get_attachments(msg),
+        }
+        for msg in root.iterfind("Message")
+    ]
 
-    return messages
 
-
-def to_android(messages: list, your_phone: str) -> None:
+def to_android(messages: list, **kwargs) -> Element:
     """
-    Convert list of messages to XML.
+    Convert a list of messages to XML in the Android SMS/MMS backup format.
+
+    **MUST specify keyword argument `you`.** This argument should contain a
+    phone number and is required by Android to identify your outgoing MMS
+    messages. It has not been made a regular argument to keep the function
+    signature consistent with the other `to_x` functions.
     """
-    # message type constants
+
     RECEIVED = "1"
     SENT = "2"
-    # address type constants
     TO = "151"
     FROM = "137"
-    # other constants
     UTF_8 = "106"
+
+    try:
+        you = kwargs["you"]
+    except KeyError as e:
+        raise TypeError("missing required keyword argument 'you'") from None
 
     smses = Element("smses")
     for message in messages:
@@ -146,10 +145,7 @@ def to_android(messages: list, your_phone: str) -> None:
             mms.set(
                 "address",
                 "~".join(
-                    sorted(
-                        (set(message["recipients"]) | {sender or your_phone})
-                        - {your_phone}
-                    )
+                    sorted((set(message["recipients"]) | {sender or you}) - {you})
                 ),
             )
             mms.set("read", "1" if message["is_read"] else "0")
@@ -172,7 +168,7 @@ def to_android(messages: list, your_phone: str) -> None:
                     "addr",
                     {
                         "chset": UTF_8,
-                        "address": sender or your_phone,
+                        "address": sender or you,
                         "type": FROM,
                     },
                 )
@@ -195,26 +191,25 @@ def to_android(messages: list, your_phone: str) -> None:
             sms.set("read", "1" if message["is_read"] else "0"),
             smses.append(sms)
 
-    smses.attrib["count"] = str(len(smses))
-    ElementTree.dump(smses)
+    smses.set("count", str(len(smses)))
+
+    return smses
 
 
-def to_json(messages: list) -> None:
-    json.dump(messages, sys.stdout, ensure_ascii=False, indent=4)
-
-
-def to_win10(messages: list) -> None:
+def to_win10(messages: list, **kwargs) -> Element:
     """
-    Comment
+    Convert a list of messages to XML in the Windows 10 Mobile SMS/MMS backup
+    format.
     """
 
     def encode_text(text: str) -> str:
+        """Two-step text encoding"""
+
         return base64.b64encode(text.encode("utf_16_le")).decode()
 
     def e(tag: str, text: str = None) -> Element:
-        """
-        Element constructor does not let you initialize the text
-        """
+        """Element constructor does not let you initialize the text"""
+
         elem = Element(tag)
         elem.text = text
         return elem
@@ -261,7 +256,7 @@ def to_win10(messages: list) -> None:
 
         e_array_of_message.append(e_message)
 
-    ElementTree.dump(e_array_of_message)
+    return e_array_of_message
 
 
 def get_args():
@@ -273,17 +268,9 @@ def get_args():
         description="An SMS/MMS translator between Android and Windows 10 Mobile",
     )
     parser.add_argument(
-        "from",
-        metavar="from",
-        choices=["android", "json", "win10"],
-        help="format of ALL input files",
+        "--from", choices=["android", "win10"], help="format of ALL input files"
     )
-    parser.add_argument(
-        "to",
-        metavar="to",
-        choices=["android", "json", "win10"],
-        help="format of output",
-    )
+    parser.add_argument("--to", choices=["android", "win10"], help="format of output")
     parser.add_argument(
         "--phone", help="your phone number (please see FAQ in README.md)"
     )
@@ -304,29 +291,48 @@ def get_args():
 
 
 def main():
+    # parse command line arguments
     args = get_args()
+    src_fmt = getattr(args, "from")
+    dst_fmt = getattr(args, "to")
+    input_files = getattr(args, "input")
+    your_phone = getattr(args, "phone")
 
-    from_f = {"android": from_android, "json": from_json, "win10": from_win10}[
-        getattr(args, "from")  # can't do args.from
-    ]
-
-    messages = []
-    if getattr(args, "input") is not None:
-        for file in getattr(args, "input"):
-            with open(file, "r") as fp:
-                messages += from_f(fp)
+    # prepare list of homogeneous source objects
+    sources = []
+    if input_files is None:
+        sources.append(
+            ET.parse(sys.stdin).getroot()  # all supported formats happen to be XML
+            if src_fmt is not None
+            else json.load(sys.stdin)
+        )
     else:
-        messages += from_f(sys.stdin)
+        for file in input_files:
+            with open(file, "r") as fp:
+                sources.append(
+                    ET.parse(fp).getroot() if src_fmt is not None else json.load(fp)
+                )
+
+    # convert and combine all sources to intermediary format
+    from_ = {"android": from_android, "win10": from_win10}
+    messages = []
+    if src_fmt is None:
+        for src in sources:
+            messages += src
+    else:
+        for src in sources:
+            messages += from_[src_fmt](src)
 
     # sort messages from oldest to newest
     messages.sort(key=lambda msg: (msg["timestamp"], msg["timestamp_ns"]))
 
-    if args.to == "android":
-        to_android(messages, args.phone)
-    elif args.to == "json":
-        to_json(messages)
-    elif args.to == "win10":
-        to_win10(messages)
+    # convert messages to destination format and print out
+    to_ = {"android": to_android, "win10": to_win10}
+    if dst_fmt is None:
+        json.dump(messages, sys.stdout, ensure_ascii=False)
+    else:
+        converted = to_[dst_fmt](messages, you=your_phone)
+        ElementTree(converted).write(sys.stdout, encoding="unicode")
 
 
 if __name__ == "__main__":
