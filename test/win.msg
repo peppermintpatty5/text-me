@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <ArrayOfMessage>
     <Message>
         <Recepients>
@@ -31,7 +31,7 @@
                 <AttachmentDataBase64String>SQB0ACAAaQBzACAAYwByAGkAdABpAGMAYQBsACAAdwBlACAAcwBlAG4AZAAgAGEAbgAgAGEAdAB0AGEAYwBrACAAZwByAG8AdQBwACAAdABoAGUAcgBlACwAIABpAG0AbQBlAGQAaQBhAHQAZQBsAHkAIQA=</AttachmentDataBase64String>
             </MessageAttachment>
         </Attachments>
-        <LocalTimestamp>127610070190000000</LocalTimestamp>
+        <LocalTimestamp>127610067420000000</LocalTimestamp>
         <Sender>Mace Windu</Sender>
     </Message>
     <Message>
@@ -49,26 +49,42 @@
                 <AttachmentDataBase64String>SABlACcAcwAgAHIAaQBnAGgAdAAsACAAdABoAGEAdAAgAGkAcwAgAGEAIABzAHkAcwB0AGUAbQAgAHcAZQAgAGMAYQBuAG4AbwB0ACAAYQBmAGYAbwByAGQAIAB0AG8AIABsAG8AcwBlAC4A</AttachmentDataBase64String>
             </MessageAttachment>
         </Attachments>
-        <LocalTimestamp>127610073380000000</LocalTimestamp>
+        <LocalTimestamp>127610067840000000</LocalTimestamp>
         <Sender/>
     </Message>
     <Message>
         <Recepients>
             <string>Ki-Adi-Mundi</string>
             <string>Mace Windu</string>
-            <string>Yoda</string>
         </Recepients>
         <Body/>
-        <IsIncoming>false</IsIncoming>
+        <IsIncoming>true</IsIncoming>
         <IsRead>true</IsRead>
         <Attachments>
             <MessageAttachment>
                 <AttachmentContentType>text/plain</AttachmentContentType>
-                <AttachmentDataBase64String>SQB0ACcAcwAgAHQAaABlACAAbQBhAGkAbgAgAG4AYQB2AGkAZwBhAHQAaQBvAG4AIAByAG8AdQB0AGUAIABmAG8AcgAgAHQAaABlACAAcwBvAHUAdABoAHcAZQBzAHQAZQByAG4AIABxAHUAYQBkAHIAYQBuAHQALgA=</AttachmentDataBase64String>
+                <AttachmentDataBase64String>RwBvACwAIABJACAAdwBpAGwAbAAuAA==</AttachmentDataBase64String>
             </MessageAttachment>
         </Attachments>
-        <LocalTimestamp>127610073680000000</LocalTimestamp>
-        <Sender/>
+        <LocalTimestamp>127610068260000000</LocalTimestamp>
+        <Sender>Yoda</Sender>
+    </Message>
+    <Message>
+        <Recepients>
+            <string>Ki-Adi-Mundi</string>
+            <string>Mace Windu</string>
+        </Recepients>
+        <Body/>
+        <IsIncoming>true</IsIncoming>
+        <IsRead>true</IsRead>
+        <Attachments>
+            <MessageAttachment>
+                <AttachmentContentType>text/plain</AttachmentContentType>
+                <AttachmentDataBase64String>RwBvAG8AZAAgAHIAZQBsAGEAdABpAG8AbgBzACAAdwBpAHQAaAAgAHQAaABlACAAVwBvAG8AawBpAGUAZQBzACwAIABJACAAaABhAHYAZQAuAA==</AttachmentDataBase64String>
+            </MessageAttachment>
+        </Attachments>
+        <LocalTimestamp>127610068360000000</LocalTimestamp>
+        <Sender>Yoda</Sender>
     </Message>
     <Message>
         <Recepients>
@@ -89,5 +105,25 @@
         <Attachments/>
         <LocalTimestamp>127610118620000000</LocalTimestamp>
         <Sender>General Grievous</Sender>
+    </Message>
+    <Message>
+        <Recepients/>
+        <Body>🔥</Body>
+        <IsIncoming>true</IsIncoming>
+        <IsRead>true</IsRead>
+        <Attachments/>
+        <LocalTimestamp>127610121700000000</LocalTimestamp>
+        <Sender>General Grievous</Sender>
+    </Message>
+    <Message>
+        <Recepients>
+            <string>General Grievous</string>
+        </Recepients>
+        <Body>So uncivilized...</Body>
+        <IsIncoming>false</IsIncoming>
+        <IsRead>true</IsRead>
+        <Attachments/>
+        <LocalTimestamp>127610121890000000</LocalTimestamp>
+        <Sender/>
     </Message>
 </ArrayOfMessage>

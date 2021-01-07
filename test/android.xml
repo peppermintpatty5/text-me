@@ -1,5 +1,5 @@
-<?xml version="1.0"?>
-<smses count="6">
+<?xml version="1.0" encoding="UTF-8"?>
+<smses count="9">
     <mms m_type="132" msg_box="1" date="1116533100000" address="Ki-Adi-Mundi~Mace Windu~Yoda" read="1">
         <parts>
             <part chset="106" ct="text/plain" text="What about the droid attack on the Wookiees?"/>
@@ -10,7 +10,7 @@
             <addr chset="106" address="Yoda" type="151"/>
         </addrs>
     </mms>
-    <mms m_type="132" msg_box="1" date="1116533419000" address="Ki-Adi-Mundi~Mace Windu~Yoda" read="1">
+    <mms m_type="132" msg_box="1" date="1116533142000" address="Ki-Adi-Mundi~Mace Windu~Yoda" read="1">
         <parts>
             <part chset="106" ct="text/plain" text="It is critical we send an attack group there, immediately!"/>
         </parts>
@@ -20,7 +20,7 @@
             <addr chset="106" address="Yoda" type="151"/>
         </addrs>
     </mms>
-    <mms m_type="128" msg_box="2" date="1116533738000" address="Ki-Adi-Mundi~Mace Windu~Yoda" read="1">
+    <mms m_type="128" msg_box="2" date="1116533184000" address="Ki-Adi-Mundi~Mace Windu~Yoda" read="1">
         <parts>
             <part chset="106" ct="text/plain" text="He's right, that is a system we cannot afford to lose."/>
         </parts>
@@ -31,17 +31,28 @@
             <addr chset="106" address="Yoda" type="151"/>
         </addrs>
     </mms>
-    <mms m_type="128" msg_box="2" date="1116533768000" address="Ki-Adi-Mundi~Mace Windu~Yoda" read="1">
+    <mms m_type="132" msg_box="1" date="1116533226000" address="Ki-Adi-Mundi~Mace Windu~Yoda" read="1">
         <parts>
-            <part chset="106" ct="text/plain" text="It's the main navigation route for the southwestern quadrant."/>
+            <part chset="106" ct="text/plain" text="Go, I will."/>
         </parts>
         <addrs>
-            <addr chset="106" address="Obi-wan Kenobi" type="137"/>
+            <addr chset="106" address="Yoda" type="137"/>
             <addr chset="106" address="Ki-Adi-Mundi" type="151"/>
             <addr chset="106" address="Mace Windu" type="151"/>
-            <addr chset="106" address="Yoda" type="151"/>
+        </addrs>
+    </mms>
+    <mms m_type="132" msg_box="1" date="1116533236000" address="Ki-Adi-Mundi~Mace Windu~Yoda" read="1">
+        <parts>
+            <part chset="106" ct="text/plain" text="Good relations with the Wookiees, I have."/>
+        </parts>
+        <addrs>
+            <addr chset="106" address="Yoda" type="137"/>
+            <addr chset="106" address="Ki-Adi-Mundi" type="151"/>
+            <addr chset="106" address="Mace Windu" type="151"/>
         </addrs>
     </mms>
     <sms date="1116538230000" address="General Grievous" type="2" body="Hello there." read="1"/>
     <sms date="1116538262000" address="General Grievous" type="1" body="General Kenobi. You are a bold one." read="1"/>
+    <sms date="1116538570000" address="General Grievous" type="1" body="🔥" read="1"/>
+    <sms date="1116538589000" address="General Grievous" type="2" body="So uncivilized..." read="1"/>
 </smses>
