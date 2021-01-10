@@ -1,3 +1,5 @@
+<!-- markdownlint-disable no-blanks-blockquote -->
+
 # text-me
 
 The 2% or less of smartphone users with Windows Phones should be aware that Windows 10 Mobile reached end of life on December 10, 2019. For those who want to transfer their texts to their new devices, I hope you find this software useful.
@@ -25,7 +27,7 @@ The supported data formats are tied to specific applications. So "converting to 
 This repository includes some [test](test/) input files. Rather than using fake phone numbers, these files simply use the names of Star Wars characters (you are Obi-wan Kenobi). Here is a demonstration of converting from Windows 10 Mobile to Android:
 
 ```shell
-python3 textme.py --from win10 --to android --phone "Obi-wan Kenobi" --input test/win.msg
+python3 textme.py --from win10 --to android --phone "Obi-wan Kenobi" --input test/win10.msg
 ```
 
 > :information_source: **Note**

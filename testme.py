@@ -29,7 +29,7 @@ class TestMe(unittest.TestCase):
     def test_all_conversions(self):
         test_files = {
             "Android": "test/android.xml",
-            "Windows 10": "test/win.msg",
+            "Windows 10": "test/win10.msg",
         }
         from_ = {
             "Android": textme.from_android,
