@@ -34,10 +34,10 @@ python3 textme.py --from win10 --to android --phone "Obi-wan Kenobi" --input tes
 >
 > `--phone` is only required when converting to Android. With Android MMS attachments, not listing the sender's address—even when you are the sender—results in a non-fatal "Unrecognized sender" error.
 
-> :information_source: **Note**
->
-> `--input` accepts one or more filenames to be concatenated **without duplicate checking**. This is useful for Windows Phone where SMS and MMS are stored in separate backup files.
-
 > :bulb: **Tip**
 >
 > Most shells support the UNIX-style pipe and redirect syntax. Include `> foo` in the command to redirect the output to a file named `foo`.
+
+The `--input` argument accepts one or more filenames to be concatenated **without duplicate checking**. This is useful for Windows Phone where SMS and MMS are stored in separate backup files.
+
+By default, this program preserves document order. If the user does `--input a b`, the output will contain all the messages in file `a` in their original order followed by all the message in file `b` in their original order. To sort the messages from oldest to newest, include `--sort`.
