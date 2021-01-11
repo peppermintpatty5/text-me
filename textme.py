@@ -273,9 +273,14 @@ def get_args():
     )
     parser.add_argument(
         "--input",
-        help="list of input files to convert from, omit to read from stdin",
+        help="list of input files to convert from",
         nargs="+",
         metavar="FILE",
+    )
+    parser.add_argument(
+        "--sort",
+        action="store_true",
+        help="sort messages from oldest to newest",
     )
 
     args = parser.parse_args()
@@ -318,8 +323,9 @@ def main():
         for src in sources:
             messages += from_[args.src_fmt](src)
 
-    # sort messages from oldest to newest
-    messages.sort(key=lambda msg: (msg.timestamp, msg.timestamp_ns))
+    # sort messages from oldest to newest, if requested
+    if args.sort:
+        messages.sort(key=lambda msg: (msg.timestamp, msg.timestamp_ns))
 
     # convert messages to destination format and print out
     to_ = {"android": to_android, "win10": to_win10}
