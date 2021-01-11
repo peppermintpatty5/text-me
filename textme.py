@@ -167,7 +167,7 @@ def to_android(messages: List[Message], **kwargs) -> Element:
                 Element(
                     "addr",
                     {
-                        "chset": UTF_8,
+                        "charset": UTF_8,
                         "address": message.sender or you,
                         "type": FROM,
                     },
@@ -175,7 +175,7 @@ def to_android(messages: List[Message], **kwargs) -> Element:
             )
             for recipient in message.recipients:
                 addr = Element("addr")
-                addr.set("chset", UTF_8)
+                addr.set("charset", UTF_8)
                 addr.set("address", recipient)
                 addr.set("type", TO)
                 addrs.append(addr)
