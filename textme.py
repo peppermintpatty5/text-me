@@ -34,69 +34,63 @@ def from_android(root: Element) -> List[Message]:
     SENT = "2"
     TO = "151"
     FROM = "137"
-    UTF_8 = "106"
 
-    messages = []
-    for elem in root.iterfind("*"):
-        message = {
-            "timestamp": int(elem.get("date")) // 1000,
-            "timestamp_ns": int(elem.get("date")) % 1000 * (10 ** 6),
-        }
-        if elem.tag == "sms":
-            address = elem.get("address")
-            if elem.get("type") == RECEIVED:
-                message["sender"] = address
-                message["recipients"] = []
-            elif elem.get("type") == SENT:
-                message["sender"] = None
-                message["recipients"] = [address]
+    def get_attachments(mms: Element) -> list:
+        attachments = []
+        for part in mms.iterfind("parts/part"):
+            attachment = {"content_type": part.get("ct")}
+            if part.get("data") is not None:
+                attachment["data_base64"] = part.get("data")
+            else:
+                attachment["text"] = part.get("text")
+            attachments.append(attachment)
+        return attachments
 
-            message["body"] = elem.get("body")
-            message["is_read"] = elem.get("read") == "1"
-            message["attachments"] = []
-        elif elem.tag == "mms":
-            message["sender"] = None
-            message["recipients"] = []
-            for addr in elem.iterfind("addrs/addr"):
-                address = addr.get("address")
-                if addr.get("type") == FROM:
-                    if elem.get("msg_box") == RECEIVED:
-                        message["sender"] = address
-                elif addr.get("type") == TO:
-                    message["recipients"].append(address)
-                else:
-                    raise ValueError(f"Unknown addr type '{addr.get('type')}'")
+    def from_sms(sms: Element) -> Message:
+        return Message(
+            timestamp=int(sms.get("date")) // 1000,
+            timestamp_ns=int(sms.get("date")) % 1000 * (10 ** 6),
+            sender=sms.get("address") if sms.get("type") == RECEIVED else None,
+            recipients=[sms.get("address")] if sms.get("type") == SENT else [],
+            body=sms.get("body"),
+            is_read=sms.get("read") == "1",
+            attachments=[],
+        )
 
-            message["body"] = None
-            message["is_read"] = elem.get("read") == "1"
+    def from_mms(mms: Element) -> Message:
+        return Message(
+            timestamp=int(mms.get("date")) // 1000,
+            timestamp_ns=int(mms.get("date")) % 1000 * (10 ** 6),
+            sender=(
+                mms.find(f"addrs/addr[@type='{FROM}']").get("address")
+                if mms.get("msg_box") == RECEIVED
+                else None
+            ),
+            recipients=[
+                addr.get("address")
+                for addr in mms.iterfind(f"addrs/addr[@type='{TO}']")
+            ],
+            body=None,
+            is_read=mms.get("read") == "1",
+            attachments=get_attachments(mms),
+        )
 
-            attachments = []
-            for part in elem.iterfind("parts/part"):
-                attachment = {"content_type": part.get("ct")}
-                data = part.get("data", default=None)
-                if data is not None:
-                    attachment["data_base64"] = data
-                else:
-                    attachment["text"] = part.get("text")
-                attachments.append(attachment)
-            message["attachments"] = attachments
-
-        messages.append(Message(**message))
-
-    return messages
+    return [
+        from_sms(msg) if msg.tag == "sms" else from_mms(msg)
+        for msg in root.iterfind("*")
+    ]
 
 
 def from_win10(root: Element) -> List[Message]:
     def get_attachments(msg: Element) -> list:
         attachments = []
-        for x in msg.iterfind("Attachments/MessageAttachment"):
+        for att in msg.iterfind("Attachments/MessageAttachment"):
             attachment = {}
-            content_type = x.find("AttachmentContentType").text
-            data_base64 = x.find("AttachmentDataBase64String").text
+            content_type = att.find("AttachmentContentType").text
+            data_base64 = att.find("AttachmentDataBase64String").text
 
             attachment["content_type"] = content_type
 
-            # these formats are further encoded in UTF-16 LE
             if content_type in {"text/plain", "application/smil"}:
                 attachment["text"] = base64.b64decode(data_base64).decode("utf_16_le")
             else:
@@ -145,13 +139,16 @@ def to_android(messages: List[Message], **kwargs) -> Element:
             mms.set(
                 "address",
                 "~".join(
-                    sorted((set(message.recipients) | {message.sender or you}) - {you})
+                    sorted(
+                        message.recipients
+                        + ([message.sender] if message.sender is not None else [])
+                    )
                 ),
             )
             mms.set("read", "1" if message.is_read else "0")
 
             parts = Element("parts")
-            for i, attachment in enumerate(message.attachments):  # TODO: seq attr?
+            for attachment in message.attachments:
                 part = Element("part")
                 part.set("chset", UTF_8)
                 part.set("ct", attachment["content_type"])
@@ -290,7 +287,6 @@ def get_args():
 
 
 def main():
-    # parse command line arguments
     args = get_args()
 
     # prepare list of homogeneous source objects
@@ -328,7 +324,7 @@ def main():
     # convert messages to destination format and print out
     to_ = {"android": to_android, "win10": to_win10}
     if args.dst_fmt is None:
-        json.dump(list(map(vars, messages)), sys.stdout, ensure_ascii=False)
+        json.dump([vars(m) for m in messages], sys.stdout, ensure_ascii=False)
     else:
         converted = to_[args.dst_fmt](messages, you=args.phone)
         ElementTree(converted).write(sys.stdout, encoding="unicode")
