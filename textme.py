@@ -3,10 +3,22 @@
 import argparse
 import base64
 import json
+import re
 import sys
 from typing import List
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element, ElementTree
+
+
+def norm(addr: str) -> str:
+    """
+    Normalizes addresses by simplifying phone numbers to only digits without
+    country code. Leaves non phone numbers alone.
+    """
+    if re.fullmatch(r"[0-9() \-+]*", addr):
+        return "".join(filter(str.isdigit, addr))[-10:]
+    else:
+        return addr
 
 
 class Message(object):
@@ -58,6 +70,9 @@ def from_android(root: Element) -> List[Message]:
         )
 
     def from_mms(mms: Element) -> Message:
+        # everyone in the conversation, excluding yourself
+        con = {norm(addr) for addr in mms.get("address").split("~")}
+
         return Message(
             timestamp=int(mms.get("date")) // 1000,
             timestamp_ns=int(mms.get("date")) % 1000 * (10 ** 6),
@@ -69,6 +84,7 @@ def from_android(root: Element) -> List[Message]:
             recipients=[
                 addr.get("address")
                 for addr in mms.iterfind(f"addrs/addr[@type='{TO}']")
+                if norm(addr.get("address")) in con
             ],
             body=None,
             is_read=mms.get("read") == "1",
@@ -121,6 +137,13 @@ def to_android(messages: List[Message], **kwargs) -> Element:
     FROM = "137"
     UTF_8 = "106"
 
+    def addr(addr_type: str, address: str):
+        a = Element("addr")
+        a.set("charset", UTF_8)
+        a.set("address", address)
+        a.set("type", addr_type)
+        return a
+
     try:
         you = kwargs["you"]
     except KeyError as e:
@@ -160,22 +183,13 @@ def to_android(messages: List[Message], **kwargs) -> Element:
             mms.append(parts)
 
             addrs = Element("addrs")
-            addrs.append(
-                Element(
-                    "addr",
-                    {
-                        "charset": UTF_8,
-                        "address": message.sender or you,
-                        "type": FROM,
-                    },
-                )
-            )
+            if message.sender is not None:
+                addrs.append(addr(FROM, message.sender))
+                addrs.append(addr(TO, you))
+            else:
+                addrs.append(addr(FROM, you))
             for recipient in message.recipients:
-                addr = Element("addr")
-                addr.set("charset", UTF_8)
-                addr.set("address", recipient)
-                addr.set("type", TO)
-                addrs.append(addr)
+                addrs.append(addr(TO, recipient))
             mms.append(addrs)
 
             smses.append(mms)

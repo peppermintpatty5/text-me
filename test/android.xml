@@ -6,6 +6,7 @@
         </parts>
         <addrs>
             <addr charset="106" address="Ki-Adi-Mundi" type="137"/>
+            <addr charset="106" address="Obi-wan Kenobi" type="151"/>
             <addr charset="106" address="Mace Windu" type="151"/>
             <addr charset="106" address="Yoda" type="151"/>
         </addrs>
@@ -16,6 +17,7 @@
         </parts>
         <addrs>
             <addr charset="106" address="Mace Windu" type="137"/>
+            <addr charset="106" address="Obi-wan Kenobi" type="151"/>
             <addr charset="106" address="Ki-Adi-Mundi" type="151"/>
             <addr charset="106" address="Yoda" type="151"/>
         </addrs>
@@ -37,6 +39,7 @@
         </parts>
         <addrs>
             <addr charset="106" address="Yoda" type="137"/>
+            <addr charset="106" address="Obi-wan Kenobi" type="151"/>
             <addr charset="106" address="Ki-Adi-Mundi" type="151"/>
             <addr charset="106" address="Mace Windu" type="151"/>
         </addrs>
@@ -47,6 +50,7 @@
         </parts>
         <addrs>
             <addr charset="106" address="Yoda" type="137"/>
+            <addr charset="106" address="Obi-wan Kenobi" type="151"/>
             <addr charset="106" address="Ki-Adi-Mundi" type="151"/>
             <addr charset="106" address="Mace Windu" type="151"/>
         </addrs>
