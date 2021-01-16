@@ -15,13 +15,15 @@ def norm(addr: str) -> str:
     Normalizes addresses by simplifying phone numbers to only digits without
     country code. Leaves non phone numbers alone.
     """
-    if re.fullmatch(r"[0-9() \-+]*", addr):
+    if addr is not None and re.fullmatch(r"[0-9() \-+]*", addr):
         return "".join(filter(str.isdigit, addr))[-10:]
     else:
         return addr
 
 
 class Message(object):
+    do_norm = False
+
     def __init__(
         self,
         timestamp: int,
@@ -34,8 +36,8 @@ class Message(object):
     ):
         self.timestamp = timestamp
         self.timestamp_ns = timestamp_ns
-        self.sender = sender
-        self.recipients = recipients
+        self.sender = norm(sender) if Message.do_norm else sender
+        self.recipients = [norm(r) if Message.do_norm else r for r in recipients]
         self.body = body
         self.is_read = is_read
         self.attachments = attachments
@@ -292,6 +294,12 @@ def get_args():
         metavar="FILE",
     )
     parser.add_argument(
+        "--norm",
+        action="store_true",
+        help="""normalize all phone numbers, e.g. transform +1 123-456-7890,
+        (123)-456-7890, etc. into 1234567890""",
+    )
+    parser.add_argument(
         "--sort",
         action="store_true",
         help="sort messages from oldest to newest",
@@ -307,6 +315,7 @@ def get_args():
 
 def main():
     args = get_args()
+    Message.do_norm = args.norm
 
     # prepare list of homogeneous source objects
     sources = []
