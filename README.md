@@ -24,9 +24,9 @@ The supported data formats are tied to specific applications. So "converting to 
 >
 > To avoid potential data loss, **backup the SMS/MMS data on your destination device** before doing any restorations.
 
-This repository includes some [test](test/) input files. Rather than using fake phone numbers, these files simply use the names of Star Wars characters (you are Obi-wan Kenobi). Here is a demonstration of converting from Windows 10 Mobile to Android:
+This repository includes some [test](test/) input files. Rather than using fake phone numbers, these files simply use the names of Star Wars characters (you are Obi-wan Kenobi). Here is a command that demonstrates converting from Windows 10 Mobile to Android:
 
-```shell
+```sh
 python3 textme.py --from win10 --to android --phone "Obi-wan Kenobi" --input test/win10.msg
 ```
 
@@ -40,4 +40,4 @@ python3 textme.py --from win10 --to android --phone "Obi-wan Kenobi" --input tes
 
 The `--input` argument accepts one or more filenames to be concatenated **without duplicate checking**. This is useful for Windows Phone where SMS and MMS are stored in separate backup files.
 
-By default, this program preserves document order. If the user does `--input a b`, the output will contain all the messages in file `a` in their original order followed by all the message in file `b` in their original order. To sort the messages from oldest to newest, include `--sort`.
+By default, this program preserves document order. If the user does `--input a b`, the output will contain all the messages in file `a` in their original order followed by all the messages in file `b` in their original order. To sort the messages from oldest to newest, include `--sort`.
