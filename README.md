@@ -8,7 +8,7 @@ This software has been designed with extensibility in mind. In the future, I may
 
 ## Prerequisites
 
-The supported data formats are tied to specific applications. So "converting to Android" really means "converting to a format used by a specific, unofficial Android SMS/MMS application". Refer to the chart below.
+The supported data formats are tied to specific applications. So "converting to Android" really means "converting to a format used by a specific, unofficial Android SMS/MMS application". Refer to the table below.
 
 [A]: https://play.google.com/store/apps/details?id=com.riteshsahu.SMSBackupRestore
 [B]: https://www.microsoft.com/en-us/p/contacts-message-backup/9nblgggz57gm
