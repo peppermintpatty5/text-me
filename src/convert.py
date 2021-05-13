@@ -1,53 +1,52 @@
-#!/usr/bin/env python3
+"""
+This module contains SMS/MMS backup format conversion functions and classes.
+"""
 
-import argparse
 import base64
-import json
 import re
-import sys
-from typing import List
-from xml.etree import ElementTree as ET
-from xml.etree.ElementTree import Element, ElementTree
+from dataclasses import dataclass
+from typing import Dict, List, Optional
+from xml.etree.ElementTree import Element
+
+ANDROID_RECEIVED = "1"
+ANDROID_SENT = "2"
+ANDROID_TO = "151"
+ANDROID_FROM = "137"
+ANDROID_UTF_8 = "106"
 
 
-def norm(addr: str) -> str:
+def norm(addr: Optional[str]) -> str:
     """
-    Normalizes addresses by simplifying phone numbers to only digits without
-    country code. Leaves non phone numbers alone.
+    Normalizes addresses by simplifying phone numbers to only digits without the country
+    code. Addresses which are not phone numbers are left unchanged.
+
+    This function makes several assumptions and should be used with caution.
     """
     if addr is not None and re.fullmatch(r"[0-9() \-+]*", addr):
         return "".join(filter(str.isdigit, addr))[-10:]
-    else:
-        return addr
+
+    return addr
 
 
-class Message(object):
-    do_norm = False
+@dataclass
+class Message:
+    """
+    This class represents a single SMS/MMS message in an intermediary format.
+    """
 
-    def __init__(
-        self,
-        timestamp: int,
-        timestamp_ns: int,
-        sender: str,
-        recipients: list,
-        body: str,
-        is_read: bool,
-        attachments: list,
-    ):
-        self.timestamp = timestamp
-        self.timestamp_ns = timestamp_ns
-        self.sender = norm(sender) if Message.do_norm else sender
-        self.recipients = [norm(r) if Message.do_norm else r for r in recipients]
-        self.body = body
-        self.is_read = is_read
-        self.attachments = attachments
+    timestamp: int
+    timestamp_ns: int
+    sender: Optional[str]
+    recipients: List[str]
+    body: Optional[str]
+    is_read: bool
+    attachments: List[Dict[str, str]]
 
 
 def from_android(root: Element) -> List[Message]:
-    RECEIVED = "1"
-    SENT = "2"
-    TO = "151"
-    FROM = "137"
+    """
+    Converts the root element from an Android XML file into a list of messages.
+    """
 
     def get_attachments(mms: Element) -> list:
         attachments = []
@@ -64,8 +63,8 @@ def from_android(root: Element) -> List[Message]:
         return Message(
             timestamp=int(sms.get("date")) // 1000,
             timestamp_ns=int(sms.get("date")) % 1000 * (10 ** 6),
-            sender=sms.get("address") if sms.get("type") == RECEIVED else None,
-            recipients=[sms.get("address")] if sms.get("type") == SENT else [],
+            sender=sms.get("address") if sms.get("type") == ANDROID_RECEIVED else None,
+            recipients=[sms.get("address")] if sms.get("type") == ANDROID_SENT else [],
             body=sms.get("body"),
             is_read=sms.get("read") == "1",
             attachments=[],
@@ -79,13 +78,13 @@ def from_android(root: Element) -> List[Message]:
             timestamp=int(mms.get("date")) // 1000,
             timestamp_ns=int(mms.get("date")) % 1000 * (10 ** 6),
             sender=(
-                mms.find(f"addrs/addr[@type='{FROM}']").get("address")
-                if mms.get("msg_box") == RECEIVED
+                mms.find(f"addrs/addr[@type='{ANDROID_FROM}']").get("address")
+                if mms.get("msg_box") == ANDROID_RECEIVED
                 else None
             ),
             recipients=[
                 addr.get("address")
-                for addr in mms.iterfind(f"addrs/addr[@type='{TO}']")
+                for addr in mms.iterfind(f"addrs/addr[@type='{ANDROID_TO}']")
                 if norm(addr.get("address")) in con
             ],
             body=None,
@@ -100,6 +99,10 @@ def from_android(root: Element) -> List[Message]:
 
 
 def from_win10(root: Element) -> List[Message]:
+    """
+    Converts the root element from a Windows 10 XML file into a list of messages.
+    """
+
     def get_attachments(msg: Element) -> list:
         attachments = []
         for att in msg.iterfind("Attachments/MessageAttachment"):
@@ -133,32 +136,34 @@ def from_win10(root: Element) -> List[Message]:
 
 
 def to_android(messages: List[Message], **kwargs) -> Element:
-    RECEIVED = "1"
-    SENT = "2"
-    TO = "151"
-    FROM = "137"
-    UTF_8 = "106"
+    """
+    Converts the list of messages into an XML tree in Android format.
+    """
 
     def addr(addr_type: str, address: str):
-        a = Element("addr")
-        a.set("charset", UTF_8)
-        a.set("address", address)
-        a.set("type", addr_type)
-        return a
+        addr = Element("addr")
+        addr.set("charset", ANDROID_UTF_8)
+        addr.set("address", address)
+        addr.set("type", addr_type)
+
+        return addr
 
     try:
         you = kwargs["you"]
-    except KeyError as e:
+    except KeyError:
         raise TypeError("missing required keyword argument 'you'") from None
 
     smses = Element("smses")
     for message in messages:
         timestamp_ms = message.timestamp * 1000 + message.timestamp_ns // 1000000
 
-        if len(message.attachments) > 0:
+        if message.attachments:
             mms = Element("mms")
             mms.set("m_type", "132" if message.sender is not None else "128")
-            mms.set("msg_box", RECEIVED if message.sender is not None else SENT)
+            mms.set(
+                "msg_box",
+                ANDROID_RECEIVED if message.sender is not None else ANDROID_SENT,
+            )
 
             mms.set("date", str(timestamp_ms))
             mms.set(
@@ -175,7 +180,7 @@ def to_android(messages: List[Message], **kwargs) -> Element:
             parts = Element("parts")
             for attachment in message.attachments:
                 part = Element("part")
-                part.set("chset", UTF_8)
+                part.set("chset", ANDROID_UTF_8)
                 part.set("ct", attachment["content_type"])
                 if "text" in attachment:
                     part.set("text", attachment["text"])
@@ -186,12 +191,12 @@ def to_android(messages: List[Message], **kwargs) -> Element:
 
             addrs = Element("addrs")
             if message.sender is not None:
-                addrs.append(addr(FROM, message.sender))
-                addrs.append(addr(TO, you))
+                addrs.append(addr(ANDROID_FROM, message.sender))
+                addrs.append(addr(ANDROID_TO, you))
             else:
-                addrs.append(addr(FROM, you))
+                addrs.append(addr(ANDROID_FROM, you))
             for recipient in message.recipients:
-                addrs.append(addr(TO, recipient))
+                addrs.append(addr(ANDROID_TO, recipient))
             mms.append(addrs)
 
             smses.append(mms)
@@ -199,9 +204,11 @@ def to_android(messages: List[Message], **kwargs) -> Element:
             sms = Element("sms")
             sms.set("date", str(timestamp_ms))
             sms.set("address", message.sender or message.recipients[0])
-            sms.set("type", RECEIVED if message.sender is not None else SENT)
+            sms.set(
+                "type", ANDROID_RECEIVED if message.sender is not None else ANDROID_SENT
+            )
             sms.set("body", message.body or "")
-            sms.set("read", "1" if message.is_read else "0"),
+            sms.set("read", "1" if message.is_read else "0")
             smses.append(sms)
 
     smses.set("count", str(len(smses)))
@@ -209,50 +216,56 @@ def to_android(messages: List[Message], **kwargs) -> Element:
     return smses
 
 
-def to_win10(messages: List[Message], **kwargs) -> Element:
+def to_win10(
+    messages: List[Message], **kwargs  # pylint: disable=unused-argument
+) -> Element:
+    """
+    Converts the list of messages into an XML tree in Windows 10 format.
+    """
+
     def encode_text(text: str) -> str:
         """Two-step text encoding"""
 
         return base64.b64encode(text.encode("utf_16_le")).decode()
 
-    def e(tag: str, text: str = None) -> Element:
+    def elem(tag: str, text: str = None) -> Element:
         """Element constructor does not let you initialize the text"""
 
         elem = Element(tag)
         elem.text = text
         return elem
 
-    e_array_of_message = e("ArrayOfMessage")
+    e_array_of_message = elem("ArrayOfMessage")
     for message in messages:
-        e_message = e("Message")
+        e_message = elem("Message")
 
-        e_recepients = e("Recepients")
+        e_recepients = elem("Recepients")
         for recipient in message.recipients:
-            e_recepients.append(e("string", recipient))
+            e_recepients.append(elem("string", recipient))
         e_message.append(e_recepients)
 
-        e_message.append(e("Body", message.body or ""))
+        e_message.append(elem("Body", message.body or ""))
         e_message.append(
-            e("IsIncoming", "true" if message.sender is not None else "false")
+            elem("IsIncoming", "true" if message.sender is not None else "false")
         )
-        e_message.append(e("IsRead", "true" if message.is_read else "false"))
-        e_attachments = e("Attachments")
+        e_message.append(elem("IsRead", "true" if message.is_read else "false"))
+        e_attachments = elem("Attachments")
         for attachment in message.attachments:
             data_base64 = (
                 attachment["data_base64"]
                 if "data_base64" in attachment
                 else encode_text(attachment["text"])
             )
-            e_message_attachment = e("MessageAttachment")
+            e_message_attachment = elem("MessageAttachment")
             e_message_attachment.append(
-                e("AttachmentContentType", attachment["content_type"])
+                elem("AttachmentContentType", attachment["content_type"])
             )
-            e_message_attachment.append(e("AttachmentDataBase64String", data_base64))
+            e_message_attachment.append(elem("AttachmentDataBase64String", data_base64))
             e_attachments.append(e_message_attachment)
         e_message.append(e_attachments)
 
         e_message.append(
-            e(
+            elem(
                 "LocalTimestamp",
                 str(
                     (message.timestamp + 11644473600) * (10 ** 7)
@@ -260,104 +273,8 @@ def to_win10(messages: List[Message], **kwargs) -> Element:
                 ),
             )
         )
-        e_message.append(e("Sender", message.sender or ""))
+        e_message.append(elem("Sender", message.sender or ""))
 
         e_array_of_message.append(e_message)
 
     return e_array_of_message
-
-
-def get_args():
-    parser = argparse.ArgumentParser(
-        description="An SMS/MMS translator between Android and Windows 10 Mobile",
-    )
-    parser.add_argument(
-        "--from",
-        choices=["android", "win10"],
-        dest="src_fmt",
-        help="format of ALL input files",
-    )
-    parser.add_argument(
-        "--to",
-        choices=["android", "win10"],
-        dest="dst_fmt",
-        help="format of output",
-    )
-    parser.add_argument(
-        "--phone",
-        help="your phone number (only required when converting to Android)",
-    )
-    parser.add_argument(
-        "--input",
-        help="list of input files to convert from",
-        nargs="+",
-        metavar="FILE",
-    )
-    parser.add_argument(
-        "--norm",
-        action="store_true",
-        help="""normalize all phone numbers, e.g. transform +1 123-456-7890,
-        (123)-456-7890, etc. into 1234567890""",
-    )
-    parser.add_argument(
-        "--sort",
-        action="store_true",
-        help="sort messages from oldest to newest",
-    )
-
-    args = parser.parse_args()
-
-    if args.dst_fmt == "android" and args.phone is None:
-        parser.error("'--to android' requires --phone")
-
-    return args
-
-
-def main():
-    args = get_args()
-    Message.do_norm = args.norm
-
-    # prepare list of homogeneous source objects
-    sources = []
-    object_hook = lambda m: Message(**m) if "timestamp" in m else m
-
-    if args.input is None:
-        sources.append(
-            ET.parse(sys.stdin).getroot()  # all supported formats happen to be XML
-            if args.src_fmt is not None
-            else json.load(sys.stdin, object_hook=object_hook)
-        )
-    else:
-        for file in args.input:
-            with open(file, "r") as fp:
-                sources.append(
-                    ET.parse(fp).getroot()
-                    if args.src_fmt is not None
-                    else json.load(fp, object_hook=object_hook)
-                )
-
-    # convert and combine all sources to intermediary format
-    from_ = {"android": from_android, "win10": from_win10}
-    messages = []
-    if args.src_fmt is None:
-        for src in sources:
-            messages += src
-    else:
-        for src in sources:
-            messages += from_[args.src_fmt](src)
-
-    # sort messages from oldest to newest, if requested
-    if args.sort:
-        messages.sort(key=lambda msg: (msg.timestamp, msg.timestamp_ns))
-
-    # convert messages to destination format and print out
-    to_ = {"android": to_android, "win10": to_win10}
-    if args.dst_fmt is None:
-        json.dump([vars(m) for m in messages], sys.stdout, ensure_ascii=False)
-    else:
-        converted = to_[args.dst_fmt](messages, you=args.phone)
-        ElementTree(converted).write(sys.stdout, encoding="unicode")
-
-
-if __name__ == "__main__":
-    main()
