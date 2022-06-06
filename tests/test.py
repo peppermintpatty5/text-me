@@ -2,6 +2,7 @@
 This module contains unit tests.
 """
 
+import os
 import unittest
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import Element
@@ -32,13 +33,16 @@ class TestMe(unittest.TestCase):
     Unit test
     """
 
+    def setUp(self) -> None:
+        self.static = os.path.join(os.path.dirname(__file__), "static")
+
     def test_all_conversions(self):
         """
         Test conversions between all formats
         """
         test_files = {
-            "Android": "test/static/android.xml",
-            "Windows 10": "test/static/win10.msg",
+            "Android": os.path.join(self.static, "android.xml"),
+            "Windows 10": os.path.join(self.static, "win10.msg"),
         }
         from_ = {
             "Android": convert.from_android,
@@ -51,7 +55,7 @@ class TestMe(unittest.TestCase):
         ingest = {}
 
         for fmt, filename in test_files.items():
-            with open(filename, "r") as file:
+            with open(filename, "r", encoding="utf8") as file:
                 ingest[fmt] = ET.parse(file).getroot()
 
         for src_fmt, src in ingest.items():
