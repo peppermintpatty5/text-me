@@ -24,10 +24,10 @@ The supported data formats are tied to specific applications. So "converting to 
 >
 > To avoid potential data loss, **backup the SMS/MMS data on your destination device** before doing any restorations.
 
-This repository includes some test [input files](test/static). Rather than using fake phone numbers, these files simply use the names of Star Wars characters (you get to be Obi-wan Kenobi). Here is a command that demonstrates converting from Windows 10 Mobile to Android:
+This repository includes some test [input files](tests/static). Rather than using fake phone numbers, these files simply use the names of Star Wars characters (you get to be Obi-wan Kenobi). Here is a command that demonstrates converting from Windows 10 Mobile to Android:
 
 ```sh
-python3 text_me.py --from win10 --to android --phone "Obi-wan Kenobi" test/static/win10.msg
+python3 text_me.py --from win10 --to android --phone "Obi-wan Kenobi" tests/static/win10.msg
 ```
 
 > :information_source: **Note**
