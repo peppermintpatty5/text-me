@@ -1,4 +1,4 @@
-name: GitHub Actions CI
+name: Continuous Integration
 
 on: [push]
 
@@ -6,19 +6,22 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v1
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
         with:
-          python-version: "3.8"
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then
-            python3 -m pip install --requirement requirements.txt
-          fi
-          python3 -m pip install pylint
-      - name: Analyzing Python files with pylint
-        run: python3 -m pylint src test text_me
+          python-version: "3.10"
+      - name: Build and install package
+        run: pip install .
       - name: Run unit tests
         run: python3 -m unittest
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: pip install pylint
+      - name: Analyze code with Pylint
+        run: pylint src/ tests/ *.py
