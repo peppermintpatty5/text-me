@@ -36,12 +36,6 @@ def get_args():
         help="your phone number (only required when converting to Android)",
     )
     parser.add_argument(
-        "--input",
-        help="list of input files to convert from",
-        nargs="+",
-        metavar="FILE",
-    )
-    parser.add_argument(
         "--norm",
         action="store_true",
         help="""normalize all phone numbers, e.g. transform +1 123-456-7890,
@@ -51,6 +45,12 @@ def get_args():
         "--sort",
         action="store_true",
         help="sort messages from oldest to newest",
+    )
+    parser.add_argument(
+        "input",
+        nargs="*",
+        help="list of input files to convert from",
+        metavar="FILE",
     )
 
     args = parser.parse_args()
@@ -70,7 +70,9 @@ def main():
 
     # prepare list of homogeneous source objects
     sources = []
-    object_hook = lambda m: convert.Message(**m) if "timestamp" in m else m
+
+    def object_hook(obj: dict):
+        return convert.Message(**obj) if "timestamp" in obj else obj
 
     if args.input is None:
         sources.append(
@@ -81,7 +83,7 @@ def main():
         )
     else:
         for filename in args.input:
-            with open(filename, "r") as file:
+            with open(filename, "r", encoding="utf8") as file:
                 sources.append(
                     ElementTree.parse(file).getroot()
                     if args.src_fmt is not None
