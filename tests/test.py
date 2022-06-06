@@ -16,7 +16,8 @@ def xml_equal(elem_a: Element, elem_b: Element) -> bool:
     entirely whitespace as empty strings.
     """
 
-    str_norm = lambda s: "" if s is None or s.isspace() else s
+    def str_norm(string: str | None) -> str:
+        return "" if string is None or string.isspace() else string
 
     return (
         elem_a.tag == elem_b.tag

@@ -70,7 +70,9 @@ def main():
 
     # prepare list of homogeneous source objects
     sources = []
-    object_hook = lambda m: convert.Message(**m) if "timestamp" in m else m
+
+    def object_hook(obj: dict):
+        return convert.Message(**obj) if "timestamp" in obj else obj
 
     if args.input is None:
         sources.append(
