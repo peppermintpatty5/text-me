@@ -62,7 +62,7 @@ def from_android(root: Element) -> List[Message]:
     def from_sms(sms: Element) -> Message:
         return Message(
             timestamp=int(sms.get("date")) // 1000,
-            timestamp_ns=int(sms.get("date")) % 1000 * (10 ** 6),
+            timestamp_ns=int(sms.get("date")) % 1000 * (10**6),
             sender=sms.get("address") if sms.get("type") == ANDROID_RECEIVED else None,
             recipients=[sms.get("address")] if sms.get("type") == ANDROID_SENT else [],
             body=sms.get("body"),
@@ -76,7 +76,7 @@ def from_android(root: Element) -> List[Message]:
 
         return Message(
             timestamp=int(mms.get("date")) // 1000,
-            timestamp_ns=int(mms.get("date")) % 1000 * (10 ** 6),
+            timestamp_ns=int(mms.get("date")) % 1000 * (10**6),
             sender=(
                 mms.find(f"addrs/addr[@type='{ANDROID_FROM}']").get("address")
                 if mms.get("msg_box") == ANDROID_RECEIVED
@@ -123,8 +123,8 @@ def from_win10(root: Element) -> List[Message]:
 
     return [
         Message(
-            timestamp=int(msg.find("LocalTimestamp").text) // (10 ** 7) - 11644473600,
-            timestamp_ns=int(msg.find("LocalTimestamp").text) % (10 ** 7) * 100,
+            timestamp=int(msg.find("LocalTimestamp").text) // (10**7) - 11644473600,
+            timestamp_ns=int(msg.find("LocalTimestamp").text) % (10**7) * 100,
             sender=msg.find("Sender").text,
             recipients=[x.text for x in msg.iterfind("Recepients/string")],
             body=msg.find("Body").text,
@@ -268,7 +268,7 @@ def to_win10(
             elem(
                 "LocalTimestamp",
                 str(
-                    (message.timestamp + 11644473600) * (10 ** 7)
+                    (message.timestamp + 11644473600) * (10**7)
                     + message.timestamp_ns // 100
                 ),
             )
