@@ -7,9 +7,8 @@ Main program
 import argparse
 import json
 import sys
-from xml.etree import ElementTree
 
-from src import convert
+from src.convert import Android, Platform, Windows10
 
 
 def get_args():
@@ -61,56 +60,29 @@ def get_args():
     return args
 
 
-def main():
+def main() -> None:
     """
     The point of entry for the program
     """
     args = get_args()
-    convert.Message.do_norm = args.norm
 
-    # prepare list of homogeneous source objects
-    sources = []
-
-    def object_hook(obj: dict):
-        return convert.Message(**obj) if "timestamp" in obj else obj
-
-    if args.input is None:
-        sources.append(
-            # all supported formats happen to be XML
-            ElementTree.parse(sys.stdin).getroot()
-            if args.src_fmt is not None
-            else json.load(sys.stdin, object_hook=object_hook)
-        )
-    else:
-        for filename in args.input:
-            with open(filename, "r", encoding="utf8") as file:
-                sources.append(
-                    ElementTree.parse(file).getroot()
-                    if args.src_fmt is not None
-                    else json.load(file, object_hook=object_hook)
-                )
-
-    # convert and combine all sources to intermediary format
-    from_ = {"android": convert.from_android, "win10": convert.from_win10}
-    messages = []
-    if args.src_fmt is None:
-        for src in sources:
-            messages += src
-    else:
-        for src in sources:
-            messages += from_[args.src_fmt](src)
+    platforms: dict[str, Platform] = {
+        "android": Android,
+        "win10": Windows10,
+    }
+    with open(args.input[0], "r", encoding="utf8") as file:
+        messages = platforms[args.src_fmt].read(file)
 
     # sort messages from oldest to newest, if requested
     if args.sort:
         messages.sort(key=lambda msg: (msg.timestamp, msg.timestamp_ns))
 
     # convert messages to destination format and print out
-    to_ = {"android": convert.to_android, "win10": convert.to_win10}
+    write_kwargs = {"you": args.phone}
     if args.dst_fmt is None:
         json.dump([vars(m) for m in messages], sys.stdout, ensure_ascii=False)
     else:
-        converted = to_[args.dst_fmt](messages, you=args.phone)
-        ElementTree.ElementTree(converted).write(sys.stdout, encoding="unicode")
+        platforms[args.dst_fmt].write(sys.stdout, messages, **write_kwargs)
 
 
 if __name__ == "__main__":
