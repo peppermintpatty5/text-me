@@ -5,7 +5,6 @@ This module contains SMS/MMS backup format conversion functions and classes.
 import base64
 import re
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 from xml.etree.ElementTree import Element
 
 ANDROID_RECEIVED = "1"
@@ -15,7 +14,7 @@ ANDROID_FROM = "137"
 ANDROID_UTF_8 = "106"
 
 
-def norm(addr: Optional[str]) -> str:
+def norm(addr: str | None) -> str:
     """
     Normalizes addresses by simplifying phone numbers to only digits without the country
     code. Addresses which are not phone numbers are left unchanged.
@@ -36,14 +35,14 @@ class Message:
 
     timestamp: int
     timestamp_ns: int
-    sender: Optional[str]
-    recipients: List[str]
-    body: Optional[str]
+    sender: str | None
+    recipients: list[str]
+    body: str | None
     is_read: bool
-    attachments: List[Dict[str, str]]
+    attachments: list[dict[str, str]]
 
 
-def from_android(root: Element) -> List[Message]:
+def from_android(root: Element) -> list[Message]:
     """
     Converts the root element from an Android XML file into a list of messages.
     """
@@ -98,7 +97,7 @@ def from_android(root: Element) -> List[Message]:
     ]
 
 
-def from_win10(root: Element) -> List[Message]:
+def from_win10(root: Element) -> list[Message]:
     """
     Converts the root element from a Windows 10 XML file into a list of messages.
     """
@@ -135,7 +134,7 @@ def from_win10(root: Element) -> List[Message]:
     ]
 
 
-def to_android(messages: List[Message], **kwargs) -> Element:
+def to_android(messages: list[Message], **kwargs) -> Element:
     """
     Converts the list of messages into an XML tree in Android format.
     """
@@ -217,7 +216,7 @@ def to_android(messages: List[Message], **kwargs) -> Element:
 
 
 def to_win10(
-    messages: List[Message], **kwargs  # pylint: disable=unused-argument
+    messages: list[Message], **kwargs  # pylint: disable=unused-argument
 ) -> Element:
     """
     Converts the list of messages into an XML tree in Windows 10 format.
