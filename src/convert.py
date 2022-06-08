@@ -202,7 +202,9 @@ class Android(Platform):
 
         smses.set("count", str(len(smses)))
 
-        ElementTree(smses).write(file, encoding="unicode")
+        tree = ElementTree(smses)
+        ET.indent(tree)
+        tree.write(file, encoding="unicode", xml_declaration=True)
 
 
 class Windows10(Platform):
@@ -303,4 +305,6 @@ class Windows10(Platform):
 
             e_array_of_message.append(e_message)
 
-        ElementTree(e_array_of_message).write(file, encoding="unicode")
+        tree = ElementTree(e_array_of_message)
+        ET.indent(tree)
+        tree.write(file, encoding="unicode", xml_declaration=True)

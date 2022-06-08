@@ -80,9 +80,12 @@ def main() -> None:
     # convert messages to destination format and print out
     write_kwargs = {"you": args.phone}
     if args.dst_fmt is None:
-        json.dump([vars(m) for m in messages], sys.stdout, ensure_ascii=False)
+        json.dump(
+            [vars(m) for m in messages], sys.stdout, ensure_ascii=False, indent="\t"
+        )
     else:
         platforms[args.dst_fmt].write(sys.stdout, messages, **write_kwargs)
+    sys.stdout.write("\n")
 
 
 if __name__ == "__main__":
