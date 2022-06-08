@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import IO
-from xml.etree.ElementTree import Element, ElementTree
+from xml.etree.ElementTree import Element, ElementTree, SubElement
 
 
 def norm(addr: str | None) -> str:
@@ -87,7 +87,7 @@ class Android(Platform):
         def from_sms(sms: Element) -> Message:
             return Message(
                 timestamp=int(sms.get("date")) // 1000,
-                timestamp_ns=int(sms.get("date")) % 1000 * (10**6),
+                timestamp_ns=int(sms.get("date")) % 1000 * 10**6,
                 sender=sms.get("address")
                 if sms.get("type") == Android.RECEIVED
                 else None,
@@ -105,7 +105,7 @@ class Android(Platform):
 
             return Message(
                 timestamp=int(mms.get("date")) // 1000,
-                timestamp_ns=int(mms.get("date")) % 1000 * (10**6),
+                timestamp_ns=int(mms.get("date")) % 1000 * 10**6,
                 sender=(
                     mms.find(f"addrs/addr[@type='{Android.FROM}']").get("address")
                     if mms.get("msg_box") == Android.RECEIVED
@@ -146,7 +146,7 @@ class Android(Platform):
             timestamp_ms = message.timestamp * 1000 + message.timestamp_ns // 1000000
 
             if message.attachments:
-                mms = Element("mms")
+                mms = SubElement(smses, "mms")
                 mms.set("m_type", "132" if message.sender is not None else "128")
                 mms.set(
                     "msg_box",
@@ -165,19 +165,17 @@ class Android(Platform):
                 )
                 mms.set("read", "1" if message.is_read else "0")
 
-                parts = Element("parts")
+                parts = SubElement(mms, "parts")
                 for attachment in message.attachments:
-                    part = Element("part")
+                    part = SubElement(parts, "part")
                     part.set("chset", Android.UTF_8)
                     part.set("ct", attachment["content_type"])
                     if "text" in attachment:
                         part.set("text", attachment["text"])
                     else:
                         part.set("data", attachment["data_base64"])
-                    parts.append(part)
-                mms.append(parts)
 
-                addrs = Element("addrs")
+                addrs = SubElement(mms, "addrs")
                 if message.sender is not None:
                     addrs.append(addr(Android.FROM, message.sender))
                     addrs.append(addr(Android.TO, you))
@@ -185,20 +183,20 @@ class Android(Platform):
                     addrs.append(addr(Android.FROM, you))
                 for recipient in message.recipients:
                     addrs.append(addr(Android.TO, recipient))
-                mms.append(addrs)
-
-                smses.append(mms)
             else:
-                sms = Element("sms")
-                sms.set("date", str(timestamp_ms))
-                sms.set("address", message.sender or message.recipients[0])
-                sms.set(
-                    "type",
-                    Android.RECEIVED if message.sender is not None else Android.SENT,
+                SubElement(
+                    smses,
+                    "sms",
+                    attrib={
+                        "date": str(timestamp_ms),
+                        "address": message.sender or message.recipients[0],
+                        "type": Android.RECEIVED
+                        if message.sender is not None
+                        else Android.SENT,
+                        "body": message.body or "",
+                        "read": "1" if message.is_read else "0",
+                    },
                 )
-                sms.set("body", message.body or "")
-                sms.set("read", "1" if message.is_read else "0")
-                smses.append(sms)
 
         smses.set("count", str(len(smses)))
 
@@ -255,58 +253,42 @@ class Windows10(Platform):
 
             return base64.b64encode(text.encode("utf_16_le")).decode()
 
-        def elem(tag: str, text: str = None) -> Element:
-            """Element constructor does not let you initialize the text"""
-
-            elem = Element(tag)
-            elem.text = text
-            return elem
-
-        e_array_of_message = elem("ArrayOfMessage")
+        message_array = Element("ArrayOfMessage")
         for message in messages:
-            e_message = elem("Message")
+            message_elem = SubElement(message_array, "Message")
 
-            e_recepients = elem("Recepients")
+            # the word "recipients" was misspelled by Microsoft
+            recipients = SubElement(message_elem, "Recepients")
             for recipient in message.recipients:
-                e_recepients.append(elem("string", recipient))
-            e_message.append(e_recepients)
+                SubElement(recipients, "string").text = recipient
 
-            e_message.append(elem("Body", message.body or ""))
-            e_message.append(
-                elem("IsIncoming", "true" if message.sender is not None else "false")
+            SubElement(message_elem, "Body").text = message.body or ""
+            SubElement(message_elem, "IsIncoming").text = (
+                "true" if message.sender is not None else "false"
             )
-            e_message.append(elem("IsRead", "true" if message.is_read else "false"))
-            e_attachments = elem("Attachments")
+            SubElement(message_elem, "IsRead").text = (
+                "true" if message.is_read else "false"
+            )
+
+            attachments = SubElement(message_elem, "Attachments")
             for attachment in message.attachments:
-                data_base64 = (
+                message_attachment = SubElement(attachments, "MessageAttachment")
+                SubElement(
+                    message_attachment, "AttachmentContentType"
+                ).text = attachment["content_type"]
+                SubElement(message_attachment, "AttachmentDataBase64String").text = (
                     attachment["data_base64"]
                     if "data_base64" in attachment
                     else encode_text(attachment["text"])
                 )
-                e_message_attachment = elem("MessageAttachment")
-                e_message_attachment.append(
-                    elem("AttachmentContentType", attachment["content_type"])
-                )
-                e_message_attachment.append(
-                    elem("AttachmentDataBase64String", data_base64)
-                )
-                e_attachments.append(e_message_attachment)
-            e_message.append(e_attachments)
 
-            e_message.append(
-                elem(
-                    "LocalTimestamp",
-                    str(
-                        (message.timestamp + 11644473600) * (10**7)
-                        + message.timestamp_ns // 100
-                    ),
-                )
+            SubElement(message_elem, "LocalTimestamp").text = str(
+                (message.timestamp + 11644473600) * 10**7
+                + message.timestamp_ns // 100
             )
-            e_message.append(elem("Sender", message.sender or ""))
+            SubElement(message_elem, "Sender").text = message.sender or ""
 
-            e_array_of_message.append(e_message)
-
-        tree = ElementTree(e_array_of_message)
+        tree = ElementTree(message_array)
         ET.indent(tree)
         tree.write(file, encoding="unicode", xml_declaration=True)
         file.write("\n")
