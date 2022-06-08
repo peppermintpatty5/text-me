@@ -19,12 +19,12 @@ class TestPlatforms(unittest.TestCase):
     def setUp(self) -> None:
         static = os.path.join(os.path.dirname(__file__), "static")
 
-        self.platforms: list[Platform] = [Android, Windows10]
-        self.test_files: dict[Platform, str] = {
+        self.platforms: list[type[Platform]] = [Android, Windows10]
+        self.test_files: dict[type[Platform], str] = {
             Android: os.path.join(static, "android.xml"),
             Windows10: os.path.join(static, "win10.msg"),
         }
-        self.write_kwargs: dict[Platform, dict[str, Any]] = {
+        self.write_kwargs: dict[type[Platform], dict[str, Any]] = {
             Android: {"you": "Obi-wan Kenobi"},
             Windows10: {},
         }

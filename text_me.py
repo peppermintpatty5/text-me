@@ -66,7 +66,7 @@ def main() -> None:
     """
     args = get_args()
 
-    platforms: dict[str, Platform] = {
+    platforms: dict[str, type[Platform]] = {
         "android": Android,
         "win10": Windows10,
     }
