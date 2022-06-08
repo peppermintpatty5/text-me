@@ -7,9 +7,8 @@ Main program
 import argparse
 import json
 import sys
-from xml.etree import ElementTree
 
-from src import convert
+from src.convert import Android, Message, Platform, Windows10
 
 
 def get_args():
@@ -36,12 +35,6 @@ def get_args():
         help="your phone number (only required when converting to Android)",
     )
     parser.add_argument(
-        "--norm",
-        action="store_true",
-        help="""normalize all phone numbers, e.g. transform +1 123-456-7890,
-        (123)-456-7890, etc. into 1234567890""",
-    )
-    parser.add_argument(
         "--sort",
         action="store_true",
         help="sort messages from oldest to newest",
@@ -61,56 +54,34 @@ def get_args():
     return args
 
 
-def main():
+def main() -> None:
     """
     The point of entry for the program
     """
     args = get_args()
-    convert.Message.do_norm = args.norm
+    platforms: dict[str, type[Platform]] = {
+        "android": Android,
+        "win10": Windows10,
+    }
 
-    # prepare list of homogeneous source objects
-    sources = []
-
-    def object_hook(obj: dict):
-        return convert.Message(**obj) if "timestamp" in obj else obj
-
-    if args.input is None:
-        sources.append(
-            # all supported formats happen to be XML
-            ElementTree.parse(sys.stdin).getroot()
-            if args.src_fmt is not None
-            else json.load(sys.stdin, object_hook=object_hook)
-        )
-    else:
-        for filename in args.input:
-            with open(filename, "r", encoding="utf8") as file:
-                sources.append(
-                    ElementTree.parse(file).getroot()
-                    if args.src_fmt is not None
-                    else json.load(file, object_hook=object_hook)
-                )
-
-    # convert and combine all sources to intermediary format
-    from_ = {"android": convert.from_android, "win10": convert.from_win10}
-    messages = []
-    if args.src_fmt is None:
-        for src in sources:
-            messages += src
-    else:
-        for src in sources:
-            messages += from_[args.src_fmt](src)
+    messages: list[Message] = []
+    for filename in args.input:
+        with open(filename, "r", encoding="utf8") as file:
+            messages += platforms[args.src_fmt].read(file)
 
     # sort messages from oldest to newest, if requested
     if args.sort:
         messages.sort(key=lambda msg: (msg.timestamp, msg.timestamp_ns))
 
     # convert messages to destination format and print out
-    to_ = {"android": convert.to_android, "win10": convert.to_win10}
+    write_kwargs = {"you": args.phone}
     if args.dst_fmt is None:
-        json.dump([vars(m) for m in messages], sys.stdout, ensure_ascii=False)
+        json.dump(
+            [vars(m) for m in messages], sys.stdout, ensure_ascii=False, indent="\t"
+        )
+        sys.stdout.write("\n")
     else:
-        converted = to_[args.dst_fmt](messages, you=args.phone)
-        ElementTree.ElementTree(converted).write(sys.stdout, encoding="unicode")
+        platforms[args.dst_fmt].write(sys.stdout, messages, **write_kwargs)
 
 
 if __name__ == "__main__":
