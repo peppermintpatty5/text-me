@@ -11,7 +11,7 @@ from typing import IO
 from xml.etree.ElementTree import Element, ElementTree, SubElement
 
 
-def norm(addr: str | None) -> str:
+def norm(addr: str | None) -> str | None:
     """
     Normalizes addresses by simplifying phone numbers to only digits without the country
     code. Addresses which are not phone numbers are left unchanged.
