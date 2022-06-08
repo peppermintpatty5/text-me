@@ -2,68 +2,54 @@
 This module contains unit tests.
 """
 
+import io
+import json
 import os
 import unittest
-import xml.etree.ElementTree as ET
-from xml.etree.ElementTree import Element
+from typing import Any
 
-from src import convert
+from src.convert import Android, Message, Platform, Windows10
 
 
-def xml_equal(elem_a: Element, elem_b: Element) -> bool:
+class TestPlatforms(unittest.TestCase):
     """
-    Recursively checks two elements for equality. Treats texts that are missing or
-    entirely whitespace as empty strings.
-    """
-
-    def str_norm(string: str | None) -> str:
-        return "" if string is None or string.isspace() else string
-
-    return (
-        elem_a.tag == elem_b.tag
-        and str_norm(elem_a.text) == str_norm(elem_b.text)
-        and str_norm(elem_a.tail) == str_norm(elem_b.tail)
-        and elem_a.attrib == elem_b.attrib
-        and len(elem_a) == len(elem_b)
-        and all(xml_equal(u, v) for u, v in zip(elem_a, elem_b))
-    )
-
-
-class TestMe(unittest.TestCase):
-    """
-    Unit test
+    Test all platforms.
     """
 
     def setUp(self) -> None:
-        self.static = os.path.join(os.path.dirname(__file__), "static")
+        static = os.path.join(os.path.dirname(__file__), "static")
 
-    def test_all_conversions(self):
+        self.platforms: list[Platform] = [Android, Windows10]
+        self.test_files: dict[Platform, str] = {
+            Android: os.path.join(static, "android.xml"),
+            Windows10: os.path.join(static, "win10.msg"),
+        }
+        self.write_kwargs: dict[Platform, dict[str, Any]] = {
+            Android: {"you": "Obi-wan Kenobi"},
+            Windows10: {},
+        }
+
+        # load messages
+        with open(os.path.join(static, "int.json"), "r", encoding="Utf8") as file:
+            self.messages = [Message(**obj) for obj in json.load(file)]
+
+        # output control
+        self.maxDiff = None  # pylint: disable=invalid-name
+
+    def test_read_write(self):
         """
-        Test conversions between all formats
+        Test read and write methods.
         """
-        test_files = {
-            "Android": os.path.join(self.static, "android.xml"),
-            "Windows 10": os.path.join(self.static, "win10.msg"),
-        }
-        from_ = {
-            "Android": convert.from_android,
-            "Windows 10": convert.from_win10,
-        }
-        to_ = {
-            "Android": convert.to_android,
-            "Windows 10": convert.to_win10,
-        }
-        ingest = {}
+        for platform in self.platforms:
+            with self.subTest(platform=platform.__name__):
+                with open(self.test_files[platform], "r", encoding="utf8") as file_in:
+                    messages = platform.read(file_in)
 
-        for fmt, filename in test_files.items():
-            with open(filename, "r", encoding="utf8") as file:
-                ingest[fmt] = ET.parse(file).getroot()
+                    file_in.seek(0)
+                    expected_output = file_in.read()
 
-        for src_fmt, src in ingest.items():
-            i = from_[src_fmt](src)  # intermediary message format
+                self.assertListEqual(messages, self.messages)
 
-            for dst_fmt, dst in ingest.items():
-                converted = to_[dst_fmt](i, you="Obi-wan Kenobi")
-
-                with self.subTest(src_fmt=src_fmt, dst_fmt=dst_fmt):
-                    self.assertTrue(xml_equal(dst, converted))
+                with io.StringIO() as file_out:
+                    platform.write(file_out, messages, **self.write_kwargs[platform])
+                    self.assertMultiLineEqual(file_out.getvalue(), expected_output)
