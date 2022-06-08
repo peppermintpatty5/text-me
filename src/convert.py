@@ -2,10 +2,10 @@
 This module contains SMS/MMS backup format conversion functions and classes.
 """
 
-import base64
 import re
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
+from base64 import b64decode, b64encode
 from dataclasses import dataclass
 from typing import IO
 from xml.etree.ElementTree import Element, ElementTree, SubElement
@@ -223,9 +223,7 @@ class Windows10(Platform):
                 attachment["content_type"] = content_type
 
                 if content_type in {"text/plain", "application/smil"}:
-                    attachment["text"] = base64.b64decode(data_base64).decode(
-                        "utf_16_le"
-                    )
+                    attachment["text"] = b64decode(data_base64).decode("utf_16_le")
                 else:
                     attachment["data_base64"] = data_base64
 
@@ -248,11 +246,6 @@ class Windows10(Platform):
 
     @staticmethod
     def write(file: IO[str], messages: list[Message], **kwargs) -> None:
-        def encode_text(text: str) -> str:
-            """Two-step text encoding"""
-
-            return base64.b64encode(text.encode("utf_16_le")).decode()
-
         message_array = Element("ArrayOfMessage")
         for message in messages:
             message_elem = SubElement(message_array, "Message")
@@ -279,7 +272,7 @@ class Windows10(Platform):
                 SubElement(message_attachment, "AttachmentDataBase64String").text = (
                     attachment["data_base64"]
                     if "data_base64" in attachment
-                    else encode_text(attachment["text"])
+                    else b64encode(attachment["text"].encode("utf_16_le")).decode()
                 )
 
             SubElement(message_elem, "LocalTimestamp").text = str(
