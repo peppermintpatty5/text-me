@@ -8,7 +8,7 @@ import argparse
 import json
 import sys
 
-from src.convert import Android, Platform, Windows10
+from src.convert import Android, Message, Platform, Windows10
 
 
 def get_args():
@@ -59,13 +59,15 @@ def main() -> None:
     The point of entry for the program
     """
     args = get_args()
-
     platforms: dict[str, type[Platform]] = {
         "android": Android,
         "win10": Windows10,
     }
-    with open(args.input[0], "r", encoding="utf8") as file:
-        messages = platforms[args.src_fmt].read(file)
+
+    messages: list[Message] = []
+    for filename in args.input:
+        with open(filename, "r", encoding="utf8") as file:
+            messages += platforms[args.src_fmt].read(file)
 
     # sort messages from oldest to newest, if requested
     if args.sort:
