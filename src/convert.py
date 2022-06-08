@@ -205,6 +205,7 @@ class Android(Platform):
         tree = ElementTree(smses)
         ET.indent(tree)
         tree.write(file, encoding="unicode", xml_declaration=True)
+        file.write("\n")
 
 
 class Windows10(Platform):
@@ -308,3 +309,4 @@ class Windows10(Platform):
         tree = ElementTree(e_array_of_message)
         ET.indent(tree)
         tree.write(file, encoding="unicode", xml_declaration=True)
+        file.write("\n")

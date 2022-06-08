@@ -83,9 +83,9 @@ def main() -> None:
         json.dump(
             [vars(m) for m in messages], sys.stdout, ensure_ascii=False, indent="\t"
         )
+        sys.stdout.write("\n")
     else:
         platforms[args.dst_fmt].write(sys.stdout, messages, **write_kwargs)
-    sys.stdout.write("\n")
 
 
 if __name__ == "__main__":
