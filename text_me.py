@@ -35,12 +35,6 @@ def get_args():
         help="your phone number (only required when converting to Android)",
     )
     parser.add_argument(
-        "--norm",
-        action="store_true",
-        help="""normalize all phone numbers, e.g. transform +1 123-456-7890,
-        (123)-456-7890, etc. into 1234567890""",
-    )
-    parser.add_argument(
         "--sort",
         action="store_true",
         help="sort messages from oldest to newest",
